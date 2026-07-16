@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "659817059572",
+    "project_id": "mohalla-5f28e",
+    "storage_bucket": "mohalla-5f28e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:659817059572:android:20e31f1dc62f80e01a7aa1",
+        "android_client_info": {
+          "package_name": "com.codrikaz.mohalla"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGoIRD73kK9dqwm_OF_9qjRymsv0es9PM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

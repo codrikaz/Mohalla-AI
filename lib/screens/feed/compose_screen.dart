@@ -1,0 +1,331 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/feed_provider.dart';
+
+class ComposeScreen extends ConsumerStatefulWidget {
+  const ComposeScreen({super.key});
+
+  @override
+  ConsumerState<ComposeScreen> createState() => _ComposeScreenState();
+}
+
+class _ComposeScreenState extends ConsumerState<ComposeScreen> {
+  final _textController = TextEditingController();
+  String _selectedCategory = PostCategory.info;
+  XFile? _image;
+  bool _isPosting = false;
+  bool _postToCountry = false;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final img = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 60,
+      maxWidth: 800,
+    );
+    if (img != null) setState(() => _image = img);
+  }
+
+  Future<void> _post() async {
+    final text = _textController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() => _isPosting = true);
+
+    final profile = ref.read(userProfileProvider).valueOrNull;
+    final locationInfo = ref.read(currentLocationProvider);
+    final ok = await ref.read(feedProvider.notifier).createPost(
+          category: _selectedCategory,
+          text: text,
+          image: _image,
+          isCountryFeed: _postToCountry,
+          posterDisplayName: _postToCountry ? profile?.displayName : null,
+          countryCode: _postToCountry ? profile?.countryCode : null,
+          locationLat: locationInfo?.lat,
+          locationLng: locationInfo?.lng,
+          areaName: locationInfo?.areaName,
+          cityName: locationInfo?.cityName,
+          stateName: locationInfo?.stateName,
+        );
+
+    setState(() => _isPosting = false);
+
+    if (ok && mounted) {
+      context.pop();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Post nahi hui — dobara try karo'),
+          backgroundColor: AppColors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const categories = PostCategory.urban;
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final remaining =
+        AppConstants.maxPostLength - _textController.text.length;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => context.pop(),
+        ),
+        title: const Text('Naya post'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: ElevatedButton(
+              onPressed: (_isPosting ||
+                      _textController.text.trim().isEmpty)
+                  ? null
+                  : _post,
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                minimumSize: Size.zero,
+              ),
+              child: _isPosting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child:
+                          CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Post karo'),
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Anonymous name display
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Center(
+                    child: Text('👤', style: TextStyle(fontSize: 18)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      profile?.anonymousName ?? 'Anonymous',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      '🔒 Tera asli naam kisi ko nahi pata',
+                      style: TextStyle(
+                          fontSize: 10, color: Colors.grey.shade500),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Category selector
+            const Text(
+              'Category',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: categories.map((cat) {
+                final isSelected = _selectedCategory == cat;
+                return ChoiceChip(
+                  label: Text(PostCategory.displayName(cat)),
+                  selected: isSelected,
+                  selectedColor: AppColors.primarySurface,
+                  labelStyle: TextStyle(
+                    fontSize: 12,
+                    color: isSelected
+                        ? AppColors.primary
+                        : Colors.grey.shade700,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                  onSelected: (_) =>
+                      setState(() => _selectedCategory = cat),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Text input
+            TextField(
+              controller: _textController,
+              maxLines: 6,
+              maxLength: AppConstants.maxPostLength,
+              onChanged: (_) => setState(() {}),
+              style: const TextStyle(fontSize: 15, height: 1.6),
+              decoration: InputDecoration(
+                hintText:
+                    'Neighbours ko kya batana chahte ho? Anonymously likho...',
+                hintStyle:
+                    TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                counterText: '$remaining chars bache',
+                counterStyle: TextStyle(
+                  fontSize: 11,
+                  color: remaining < 50
+                      ? AppColors.red
+                      : Colors.grey.shade500,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Image attachment
+            if (_image != null) ...[
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      File(_image!.path),
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _image = null),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close,
+                            color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Attach image button
+            OutlinedButton.icon(
+              onPressed: _pickImage,
+              icon: const Icon(Icons.photo_outlined, size: 18),
+              label: Text(
+                  _image == null ? 'Photo add karo' : 'Photo change karo'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.grey.shade700,
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Country feed toggle
+            Builder(builder: (context) {
+              final countryFlag = profile?.countryFlag ?? '🌍';
+              final countryName = profile?.countryName ?? 'Country';
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _postToCountry
+                      ? AppColors.primarySurface
+                      : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _postToCountry
+                        ? AppColors.primaryLight
+                        : Colors.grey.shade200,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(countryFlag, style: const TextStyle(fontSize: 20)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$countryName feed mein bhi post karo',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                          Text(
+                            _postToCountry
+                                ? 'Tumhara naam "${profile?.displayName ?? 'Anonymous'} — Tumhari location" dikhega'
+                                : 'Poore $countryName ke log dekh sakte hain — tumhara naam dikhega',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _postToCountry,
+                      onChanged: (val) =>
+                          setState(() => _postToCountry = val),
+                      activeThumbColor: AppColors.primary,
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
