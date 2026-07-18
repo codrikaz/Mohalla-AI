@@ -47,15 +47,17 @@ class FeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
       final userId = _client.auth.currentUser?.id;
 
       // GPS position lo
-      try {
-        _position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.medium,
-            timeLimit: Duration(seconds: 8),
-          ),
-        );
-      } catch (_) {
-        // GPS na mile toh bhi chalo — saari posts dikhao
+      if (_position == null) {
+        try {
+          _position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 8),
+            ),
+          );
+        } catch (_) {
+          // GPS na mile toh bhi chalo — saari posts dikhao
+        }
       }
 
       // Saari local posts fetch karo (country feed nahi)
@@ -179,6 +181,11 @@ class FeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
         'city_name': cityName,
         'state_name': stateName,
       });
+      // Realtime can be delayed or temporarily unavailable. Reload explicitly
+      // so the publishing user sees the new local post immediately.
+      if (!isCountryFeed) {
+        await _loadPosts();
+      }
       return true;
     } catch (_) {
       return false;

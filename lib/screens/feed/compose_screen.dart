@@ -161,11 +161,17 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           stateName: locationInfo?.stateName,
         );
 
+    if (!mounted) return;
     setState(() => _isPosting = false);
 
-    if (ok && mounted) {
+    if (ok) {
+      if (_postToCountry) {
+        await ref.read(countryFeedProvider.notifier).refresh();
+      }
+      ref.invalidate(myPostsProvider);
+      if (!mounted) return;
       context.pop();
-    } else if (mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('The post could not be published. Please try again.'),
