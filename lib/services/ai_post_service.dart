@@ -24,7 +24,7 @@ class AiPostService {
     final trimmed = text.trim();
     if (trimmed.length < 10) {
       throw const AiPostException(
-        'AI use karne ke liye kam se kam 10 characters likho.',
+        'Write at least 10 characters to use the AI assistant.',
       );
     }
 
@@ -39,13 +39,14 @@ class AiPostService {
 
       if (response.status < 200 || response.status >= 300) {
         throw const AiPostException(
-          'AI assistant abhi available nahi hai. Dobara try karo.',
+          'The AI assistant is currently unavailable. Please try again.',
         );
       }
 
       final data = response.data;
       if (data is! Map) {
-        throw const AiPostException('AI se invalid response mila.');
+        throw const AiPostException(
+            'The AI assistant returned an invalid response.');
       }
 
       final json = Map<String, dynamic>.from(data);
@@ -59,13 +60,13 @@ class AiPostService {
         throw AiPostException(details['error'] as String);
       }
       throw const AiPostException(
-        'AI assistant se connect nahi ho paya. Dobara try karo.',
+        'Could not connect to the AI assistant. Please try again.',
       );
     } on AiPostException {
       rethrow;
     } catch (_) {
       throw const AiPostException(
-        'AI assistant se connect nahi ho paya. Dobara try karo.',
+        'Could not connect to the AI assistant. Please try again.',
       );
     }
   }

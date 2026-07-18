@@ -46,6 +46,16 @@ Create a meaningful AI-assisted posting experience that helps residents communic
 - Identical user inputs and language choices reuse cached results.
 - Failed upstream requests restore the claimed allowance.
 
+## Public test-build availability
+
+The authenticated OpenAI API integration, structured-output contract, cache,
+and usage controls remain implemented in the repository. Live generation is
+disabled in the public test build because API billing is not enabled. The app
+states this limitation directly and normal post creation remains available
+without making a paid request. Codex and GPT-5.6 development usage is evidenced
+through the primary `/feedback` session, commit history, README, and demo
+voiceover.
+
 ## Security decisions
 
 - `OPENAI_API_KEY` is stored as a Supabase Edge Function secret.

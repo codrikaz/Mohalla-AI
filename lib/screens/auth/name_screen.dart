@@ -29,9 +29,8 @@ class _NameScreenState extends ConsumerState<NameScreen> {
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {
-      await Supabase.instance.client
-          .from('users')
-          .update({'display_name': _nameController.text.trim()}).eq('id', userId);
+      await Supabase.instance.client.from('users').update(
+          {'display_name': _nameController.text.trim()}).eq('id', userId);
 
       await ref.read(userProfileProvider.notifier).reload();
     }
@@ -44,111 +43,109 @@ class _NameScreenState extends ConsumerState<NameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 60),
-                const Text('👋', style: TextStyle(fontSize: 48)),
-                const SizedBox(height: 20),
-                const Text(
-                  'Apna naam daalo',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            children: [
+              const SizedBox(height: 60),
+              const Text('👋', style: TextStyle(fontSize: 48)),
+              const SizedBox(height: 20),
+              const Text(
+                'Enter your name',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Ye naam sirf tab dikhega jab tum khud choose karo',
-                  style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your name appears only when you choose to show it',
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 32),
+
+              // Info box — naam kab dikhega / nahi dikhega
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: AppColors.primaryLight.withValues(alpha: 0.4)),
                 ),
-                const SizedBox(height: 32),
-
-                // Info box — naam kab dikhega / nahi dikhega
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: AppColors.primaryLight.withValues(alpha: 0.4)),
-                  ),
-                  child: Column(
-                    children: [
-                      _InfoRow(
-                        icon: '🏘️',
-                        title: 'Local feed mein',
-                        subtitle: 'Hamesha Anonymous — "Block C Neighbour" jaisa naam',
-                        isAnon: true,
-                      ),
-                      const Divider(height: 16),
-                      _InfoRow(
-                        icon: '🌍',
-                        title: 'Country feed mein (agar tum post karo)',
-                        subtitle:
-                            'Tumhara asli naam + area dikhega — "Rahul — Civil Lines, Rampur"',
-                        isAnon: false,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                TextFormField(
-                  controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
-                  style: const TextStyle(fontSize: 18),
-                  decoration: const InputDecoration(
-                    hintText: 'Rahul, Sunita, Mohammed...',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().length < 2) {
-                      return 'Kam se kam 2 characters ka naam daalo';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _saving ? null : _save,
-                    child: _saving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Aage badho'),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Skip option
-                Center(
-                  child: TextButton(
-                    onPressed: _saving
-                        ? null
-                        : () => context.go('/colony-detect'),
-                    child: Text(
-                      'Abhi nahi — baad mein add karunga',
-                      style: TextStyle(
-                          color: Colors.grey.shade500, fontSize: 13),
+                child: Column(
+                  children: [
+                    _InfoRow(
+                      icon: '🏘️',
+                      title: 'In the local feed',
+                      subtitle:
+                          'Always anonymous, for example “Block C Neighbour”',
+                      isAnon: true,
                     ),
+                    const Divider(height: 16),
+                    _InfoRow(
+                      icon: '🌍',
+                      title: 'In the country feed',
+                      subtitle:
+                          'Your name and area are shown when you choose to post there',
+                      isAnon: false,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              TextFormField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                style: const TextStyle(fontSize: 18),
+                decoration: const InputDecoration(
+                  hintText: 'Adward, Sunita, Zakir...',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().length < 2) {
+                    return 'Enter at least 2 characters';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Continue'),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Skip option
+              Center(
+                child: TextButton(
+                  onPressed:
+                      _saving ? null : () => context.go('/colony-detect'),
+                  child: Text(
+                    'Skip for now',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -180,17 +177,19 @@ class _InfoRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
                 children: [
                   Text(
                     title,
                     style: const TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 13),
                   ),
-                  const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 1),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
                       color: isAnon
                           ? AppColors.greenSurface
@@ -198,7 +197,7 @@ class _InfoRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      isAnon ? '🔒 Anonymous' : '👤 Naam dikhega',
+                      isAnon ? '🔒 Anonymous' : '👤 Name visible',
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w600,

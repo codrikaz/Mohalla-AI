@@ -24,7 +24,7 @@ Important neighbourhood information is often scattered across messaging groups a
 
 Mohalla connects residents through a GPS-aware local feed. Users can publish safety alerts, report local problems, request help, share events, attach photos, reply, and vote on posts.
 
-During OpenAI Build Week, Mohalla gained an optional AI Post Assistant. A resident can write an informal message, request English or Hindi translation, and receive a clearer title, rewritten post, and suggested category. The user previews and approves the result before publishing.
+During OpenAI Build Week, Mohalla gained an optional AI Post Assistant integration. Its authenticated backend, structured response contract, caching, and usage controls are implemented in the repository. Live generation is disabled in the public test build because API billing is not enabled, and the interface states that limitation clearly. Residents can continue creating and publishing posts normally.
 
 ### How we built it
 
@@ -78,9 +78,9 @@ Geolocation
 - **0:00–0:20:** Explain that important nearby alerts are lost in noisy messaging groups.
 - **0:20–0:45:** Show login, location, and the local feed.
 - **0:45–1:10:** Create an informal water, electricity, safety, or road report.
-- **1:10–1:40:** Select Hindi or English and press **Improve**.
-- **1:40–2:00:** Show the title, category, rewritten post, translation, and Apply action.
-- **2:00–2:15:** Repeat the request and show that the cached result does not consume the limit.
+- **1:10–1:35:** Show the AI panel and explain that live generation is disabled because API billing is unavailable.
+- **1:35–2:00:** Show the Edge Function, structured response contract, cache, and daily limit in the repository.
+- **2:00–2:15:** Publish a normal post to demonstrate that the core app remains fully usable.
 - **2:15–2:35:** Show the architecture diagram and explain that the API key stays in Supabase.
 - **2:35–2:50:** Show baseline commit versus Build Week files and explain Codex usage.
 - **2:50–2:58:** State the community impact and future plan.
@@ -91,17 +91,17 @@ Record the real app on a device or emulator. Keep the video public, under three 
 
 1. Local feed with nearby posts
 2. Compose screen with Mohalla AI panel
-3. AI suggestion preview
-4. Hindi or English translation result
-5. Published improved post
+3. AI integration availability notice
+4. Edge Function and structured-output implementation
+5. Published community post
 
 ## Final submission checklist
 
 - [ ] Supabase Build Week migration applied
 - [ ] `OPENAI_API_KEY` configured as a Supabase secret
 - [ ] Edge Function deployed
-- [ ] AI flow tested with the judging account
-- [ ] Daily limit and cached response demonstrated
+- [ ] Public build clearly states that live API generation is disabled
+- [ ] AI integration, daily limit, and cache implementation shown in the video
 - [ ] `flutter analyze` passes
 - [ ] `flutter test` passes
 - [ ] Release APK signed with a private release key

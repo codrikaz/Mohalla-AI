@@ -1,6 +1,6 @@
 class Post {
   final String id;
-  final String? colonyId;   // nullable — GPS based system mein optional
+  final String? colonyId; // nullable — GPS based system mein optional
   final String userId;
   final String category;
   final String text;
@@ -8,6 +8,7 @@ class Post {
   final String? audioUrl;
   final int agreeCount;
   final int disagreeCount;
+  final int replyCount;
   final bool isPinned;
   final bool isCountryFeed;
   final String? posterDisplayName;
@@ -18,9 +19,9 @@ class Post {
   final double? locationLng;
 
   // Reverse geocoded area info (stored at post time)
-  final String? areaName;   // e.g. "Civil Lines"
-  final String? cityName;   // e.g. "Rampur"
-  final String? stateName;  // e.g. "Uttar Pradesh"
+  final String? areaName; // e.g. "Civil Lines"
+  final String? cityName; // e.g. "Rampur"
+  final String? stateName; // e.g. "Uttar Pradesh"
 
   final DateTime createdAt;
 
@@ -41,6 +42,7 @@ class Post {
     this.audioUrl,
     required this.agreeCount,
     required this.disagreeCount,
+    this.replyCount = 0,
     required this.isPinned,
     this.isCountryFeed = false,
     this.posterDisplayName,
@@ -65,8 +67,12 @@ class Post {
   // Country feed: naam + area | Local: anonymous naam
   String get displayLabel {
     if (isCountryFeed && posterDisplayName != null) {
-      final area = [areaName, cityName].where((s) => s != null && s.isNotEmpty).join(', ');
-      return area.isNotEmpty ? '$posterDisplayName — $area' : posterDisplayName!;
+      final area = [areaName, cityName]
+          .where((s) => s != null && s.isNotEmpty)
+          .join(', ');
+      return area.isNotEmpty
+          ? '$posterDisplayName — $area'
+          : posterDisplayName!;
     }
     return anonymousName ?? 'Anonymous';
   }
@@ -81,6 +87,7 @@ class Post {
         audioUrl: json['audio_url'] as String?,
         agreeCount: (json['agree_count'] as num?)?.toInt() ?? 0,
         disagreeCount: (json['disagree_count'] as num?)?.toInt() ?? 0,
+        replyCount: _parseReplyCount(json['replies']),
         isPinned: (json['is_pinned'] as bool?) ?? false,
         isCountryFeed: (json['is_country_feed'] as bool?) ?? false,
         posterDisplayName: json['poster_display_name'] as String?,
@@ -99,7 +106,9 @@ class Post {
   Post copyWith({
     int? agreeCount,
     int? disagreeCount,
+    int? replyCount,
     String? myVote,
+    bool clearMyVote = false,
     bool? isPinned,
   }) =>
       Post(
@@ -112,6 +121,7 @@ class Post {
         audioUrl: audioUrl,
         agreeCount: agreeCount ?? this.agreeCount,
         disagreeCount: disagreeCount ?? this.disagreeCount,
+        replyCount: replyCount ?? this.replyCount,
         isPinned: isPinned ?? this.isPinned,
         isCountryFeed: isCountryFeed,
         posterDisplayName: posterDisplayName,
@@ -124,6 +134,16 @@ class Post {
         createdAt: createdAt,
         anonymousName: anonymousName,
         userIsVerified: userIsVerified,
-        myVote: myVote ?? this.myVote,
+        myVote: clearMyVote ? null : (myVote ?? this.myVote),
       );
+
+  static int _parseReplyCount(Object? value) {
+    if (value is List && value.isNotEmpty) {
+      final first = value.first;
+      if (first is Map) return (first['count'] as num?)?.toInt() ?? 0;
+    }
+    if (value is Map) return (value['count'] as num?)?.toInt() ?? 0;
+    if (value is num) return value.toInt();
+    return 0;
+  }
 }

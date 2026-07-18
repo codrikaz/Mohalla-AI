@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/feed_provider.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/category_filter_bar.dart';
+import '../../widgets/post_feed_shimmer.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -21,7 +22,7 @@ class FeedScreen extends ConsumerWidget {
 
     final countryFlag = profile?.countryFlag ?? '🌍';
     final countryName = profile?.countryName ?? 'Country';
-    final areaLabel = locationInfo?.displayArea ?? 'Aas paas';
+    final areaLabel = locationInfo?.displayArea ?? 'Nearby';
 
     final feedAsync = feedType == 'local'
         ? ref.watch(feedProvider)
@@ -51,7 +52,7 @@ class FeedScreen extends ConsumerWidget {
               )
             else if (feedType == 'country')
               Text(
-                '$countryFlag $countryName se posts',
+                '$countryFlag Posts from $countryName',
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
           ],
@@ -70,7 +71,7 @@ class FeedScreen extends ConsumerWidget {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(44),
+          preferredSize: const Size.fromHeight(54),
           child: _FeedTypeTabs(
             feedType: feedType,
             ref: ref,
@@ -82,20 +83,13 @@ class FeedScreen extends ConsumerWidget {
       body: Column(
         children: [
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            color: const Color(0xFFF8F8FB),
+            padding: const EdgeInsets.fromLTRB(6, 12, 6, 4),
             child: const CategoryFilterBar(),
           ),
-          const Divider(height: 1),
-
           Expanded(
             child: feedAsync.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
-              ),
+              loading: () => const PostFeedShimmer(),
               error: (e, _) => Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -103,7 +97,7 @@ class FeedScreen extends ConsumerWidget {
                     const Icon(Icons.error_outline,
                         size: 40, color: Colors.grey),
                     const SizedBox(height: 8),
-                    Text('Kuch gadbad: $e'),
+                    Text('Something went wrong: $e'),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: () {
@@ -142,8 +136,7 @@ class FeedScreen extends ConsumerWidget {
                   },
                   color: AppColors.primary,
                   child: ListView.builder(
-                    padding:
-                        const EdgeInsets.only(top: 8, bottom: 100),
+                    padding: const EdgeInsets.only(top: 8, bottom: 100),
                     itemCount: filtered.length,
                     itemBuilder: (ctx, i) {
                       final post = filtered[i];
@@ -151,21 +144,22 @@ class FeedScreen extends ConsumerWidget {
                         post: post,
                         isMyPost: post.userId == myId,
                         onTap: () => context.push('/post/${post.id}'),
-                        onVote: feedType == 'local'
-                            ? (type) => ref
+                        onVote: (type) => feedType == 'local'
+                            ? ref
                                 .read(feedProvider.notifier)
                                 .vote(post.id, type)
-                            : null,
+                            : ref
+                                .read(countryFeedProvider.notifier)
+                                .vote(post.id, type),
                         onDelete: post.userId == myId
                             ? () async {
                                 await ref
                                     .read(feedProvider.notifier)
                                     .deletePost(post.id);
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(const SnackBar(
-                                          content:
-                                              Text('Post delete ho gayi')));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('Post deleted')));
                                 }
                               }
                             : null,
@@ -184,7 +178,7 @@ class FeedScreen extends ConsumerWidget {
               onPressed: () => context.push('/compose'),
               backgroundColor: AppColors.primary,
               icon: const Icon(Icons.edit_outlined, color: Colors.white),
-              label: const Text('Post karo',
+              label: const Text('Create post',
                   style: TextStyle(
                       color: Colors.white, fontWeight: FontWeight.w600)),
             )
@@ -196,9 +190,9 @@ class FeedScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Report karo?'),
-        content:
-            const Text('Ye post fake ya abusive hai? Review hoga.'),
+        title: const Text('Report this post?'),
+        content: const Text(
+            'Is this post misleading or abusive? It will be reviewed.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -208,11 +202,10 @@ class FeedScreen extends ConsumerWidget {
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Report bhej diya — shukriya')),
+                const SnackBar(content: Text('Report submitted. Thank you.')),
               );
             },
-            child: const Text('Report karo'),
+            child: const Text('Report'),
           ),
         ],
       ),
@@ -237,64 +230,50 @@ class _FeedTypeTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 54,
       color: Colors.white,
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-      child: Row(
-        children: [
-          _Tab(
-            label: '🏘️ Local',
-            isSelected: feedType == 'local',
-            onTap: () {
-              ref.read(selectedFeedTypeProvider.notifier).state = 'local';
-              ref.read(selectedCategoryProvider.notifier).state = null;
-            },
+      padding: const EdgeInsets.fromLTRB(12, 5, 12, 7),
+      child: SegmentedButton<String>(
+        segments: [
+          const ButtonSegment<String>(
+            value: 'local',
+            label: Text('🏘️ Local'),
           ),
-          const SizedBox(width: 8),
-          _Tab(
-            label: '$countryFlag $countryName',
-            isSelected: feedType == 'country',
-            onTap: () {
-              ref.read(selectedFeedTypeProvider.notifier).state = 'country';
-              ref.read(selectedCategoryProvider.notifier).state = null;
-            },
+          ButtonSegment<String>(
+            value: 'country',
+            label: Text('$countryFlag $countryName'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Tab extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _Tab({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight:
-                isSelected ? FontWeight.w600 : FontWeight.normal,
-            color: isSelected ? Colors.white : Colors.grey.shade600,
+        selected: {feedType},
+        onSelectionChanged: (selection) {
+          ref.read(selectedFeedTypeProvider.notifier).state = selection.first;
+          ref.read(selectedCategoryProvider.notifier).state = null;
+        },
+        showSelectedIcon: false,
+        expandedInsets: EdgeInsets.zero,
+        style: ButtonStyle(
+          visualDensity: VisualDensity.compact,
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            return states.contains(WidgetState.selected)
+                ? AppColors.primary
+                : Colors.white;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            return states.contains(WidgetState.selected)
+                ? Colors.white
+                : Colors.grey.shade600;
+          }),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: Colors.grey.shade200),
           ),
+          textStyle: WidgetStateProperty.resolveWith((states) {
+            return TextStyle(
+              fontSize: 12,
+              fontWeight: states.contains(WidgetState.selected)
+                  ? FontWeight.w700
+                  : FontWeight.w500,
+            );
+          }),
         ),
       ),
     );
@@ -330,8 +309,8 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               feedType == 'country'
-                  ? '$countryName feed abhi khali hai\nPehli post tum karo!'
-                  : '$areaLabel mein abhi koi post nahi\nPehli post tum karo! 👋',
+                  ? 'The $countryName feed is empty.\nBe the first to post!'
+                  : 'There are no posts in $areaLabel yet.\nBe the first to post! 👋',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Colors.grey.shade600, fontSize: 15, height: 1.5),

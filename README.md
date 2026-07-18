@@ -1,6 +1,6 @@
 # Mohalla AI — Hyperlocal Community Alerts
 
-Mohalla AI is a Flutter application that connects residents through useful posts from their nearby area. People can publish safety alerts, report local issues, request help, share events, and post community updates. Its optional AI Post Assistant turns informal text into a clear, categorized, and optionally translated neighbourhood post.
+Mohalla AI is a Flutter application that connects residents through useful posts from their nearby area. People can publish safety alerts, report local issues, request help, share events, and post community updates. The repository also contains an optional AI Post Assistant integration for clear, categorized, and optionally translated neighbourhood posts.
 
 > OpenAI Build Week 2026 submission for **Apps for Your Life**.
 
@@ -24,6 +24,11 @@ Important neighbourhood information is usually scattered across messaging groups
 - Cached results that do not consume another request
 
 ## AI Post Assistant
+
+> **Public test build:** Live OpenAI API generation is disabled because API
+> billing is not enabled. The authenticated Edge Function, structured response
+> contract, cache, and usage controls remain implemented for code review. Normal
+> post creation is fully available and does not make a paid API request.
 
 A resident might type:
 
@@ -167,14 +172,11 @@ Before distributing a release, replace the current debug signing configuration w
 
 ## Testing the AI flow
 
-1. Sign in with a test phone number.
-2. Open **Naya post**.
-3. Enter at least ten characters.
-4. Select no translation, English, or Hindi.
-5. Press **Improve**.
-6. Review the generated title, category, post, and translation.
-7. Press **Apply**, then publish the post.
-8. Repeat the same input to demonstrate that a cached response does not consume the daily limit.
+1. Sign in with Google or the documented test phone number.
+2. Open **Create post**.
+3. Confirm the AI panel clearly reports that live generation is unavailable in the public build.
+4. Enter a community update, select a category, and publish it normally.
+5. Review the Edge Function and migration files to inspect the implemented structured output, cache, and daily limit.
 
 ## Privacy and safety
 
@@ -200,7 +202,7 @@ Known limitation: the current local-feed implementation filters stored coordinat
 ## Known limitations
 
 - English and Hindi are the first translation targets.
-- AI needs network connectivity and configured Supabase/OpenAI services.
+- Live AI generation is disabled in the public test build because OpenAI API billing is not enabled.
 - FCM requires a valid Firebase project.
 - Phone OTP delivery requires a configured Supabase phone provider.
 - Production release signing is not included in source control.

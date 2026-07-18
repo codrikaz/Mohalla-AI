@@ -48,7 +48,7 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         inputDecoration: InputDecoration(
           prefixIcon: const Icon(Icons.search),
-          hintText: 'Apna desh dhundo...',
+          hintText: 'Search for your country...',
           filled: true,
           fillColor: Colors.grey.shade100,
           border: OutlineInputBorder(
@@ -69,7 +69,8 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
   Future<void> _sendOtp() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final phone = '+${_selectedCountry.phoneCode}${_phoneController.text.trim()}';
+    final phone =
+        '+${_selectedCountry.phoneCode}${_phoneController.text.trim()}';
     final success = await ref.read(authFlowProvider.notifier).sendOtp(
           phone,
           countryCode: _selectedCountry.countryCode,
@@ -86,160 +87,157 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 60),
-                const Text('🏘️', style: TextStyle(fontSize: 48)),
-                const SizedBox(height: 20),
-                const Text(
-                  'Apne mohalle mein\nswagat hai',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    height: 1.2,
-                  ),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            children: [
+              const SizedBox(height: 60),
+              const Text('🏘️', style: TextStyle(fontSize: 48)),
+              const SizedBox(height: 20),
+              const Text(
+                'Welcome to your\nneighbourhood',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Number se verify karo — koi password nahi, koi account nahi',
-                  style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 32),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Verify your number—no password required',
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 32),
 
-                // Country selector
-                GestureDetector(
-                  onTap: _openCountryPicker,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey.shade50,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          _selectedCountry.flagEmoji,
-                          style: const TextStyle(fontSize: 22),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _selectedCountry.name,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
+              // Country selector
+              GestureDetector(
+                onTap: _openCountryPicker,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey.shade50,
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        _selectedCountry.flagEmoji,
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _selectedCountry.name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        Text(
-                          '+${_selectedCountry.phoneCode}',
-                          style: TextStyle(
-                              fontSize: 14, color: Colors.grey.shade600),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(Icons.expand_more,
-                            color: Colors.grey.shade500, size: 20),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        '+${_selectedCountry.phoneCode}',
+                        style: TextStyle(
+                            fontSize: 14, color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(Icons.expand_more,
+                          color: Colors.grey.shade500, size: 20),
+                    ],
                   ),
                 ),
+              ),
 
-                const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-                // Phone number input
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(15),
-                  ],
-                  style: const TextStyle(fontSize: 20, letterSpacing: 2),
-                  decoration: InputDecoration(
-                    prefixText: '+${_selectedCountry.phoneCode}  ',
-                    prefixStyle: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey.shade700,
-                    ),
-                    hintText: _selectedCountry.example,
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      letterSpacing: 1,
-                      fontSize: 16,
-                    ),
-                    counterText: '',
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().length < 5) {
-                      return 'Sahi phone number daalo';
-                    }
-                    return null;
-                  },
-                ),
-
-                if (authFlow.error != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.redSurface,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: AppColors.red, size: 16),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            authFlow.error!,
-                            style: const TextStyle(
-                                color: AppColors.red, fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              // Phone number input
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(15),
                 ],
-
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: authFlow.isLoading ? null : _sendOtp,
-                    child: authFlow.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text('OTP bhejo'),
+                style: const TextStyle(fontSize: 20, letterSpacing: 2),
+                decoration: InputDecoration(
+                  prefixText: '+${_selectedCountry.phoneCode}  ',
+                  prefixStyle: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey.shade700,
                   ),
+                  hintText: _selectedCountry.example,
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade400,
+                    letterSpacing: 1,
+                    fontSize: 16,
+                  ),
+                  counterText: '',
                 ),
+                validator: (val) {
+                  if (val == null || val.trim().length < 5) {
+                    return 'Enter a valid phone number';
+                  }
+                  return null;
+                },
+              ),
 
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Text(
-                    '🔒  Tera number kabhi kisi ko nahi pata — GPS se sirf aas paas ke neighbours ki posts dikhti hain',
-                    style:
-                        TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                    textAlign: TextAlign.center,
+              if (authFlow.error != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.redSurface,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: AppColors.red, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          authFlow.error!,
+                          style: const TextStyle(
+                              color: AppColors.red, fontSize: 13),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
+
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: authFlow.isLoading ? null : _sendOtp,
+                  child: authFlow.isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Send OTP'),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Text(
+                  '🔒 Your phone number stays private. Location is used only to show nearby posts.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
         ),
       ),

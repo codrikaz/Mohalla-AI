@@ -22,7 +22,7 @@ class ProfileScreen extends ConsumerWidget {
         elevation: 0,
         titleSpacing: 16,
         title: const Text(
-          'Mera Profile',
+          'My Profile',
           style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -34,7 +34,7 @@ class ProfileScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (profile) {
           if (profile == null) {
-            return const Center(child: Text('Profile nahi mila'));
+            return const Center(child: Text('Profile not found'));
           }
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -64,11 +64,15 @@ class ProfileScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          profile.anonymousName ?? 'Anonymous',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Text(
+                            profile.anonymousName ?? 'Anonymous',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         if (profile.isRwaVerified) ...[
@@ -113,9 +117,9 @@ class ProfileScreen extends ConsumerWidget {
                     ],
                     const SizedBox(height: 8),
                     Text(
-                      '🔒 Tera asli naam sirf tere paas hai',
-                      style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade500),
+                      '🔒 Your real name remains private',
+                      style:
+                          TextStyle(fontSize: 11, color: Colors.grey.shade500),
                     ),
                   ],
                 ),
@@ -140,7 +144,8 @@ class ProfileScreen extends ConsumerWidget {
                     const Divider(height: 1, indent: 56),
                     _SettingsTile(
                       icon: Icons.location_on_outlined,
-                      label: 'Location: ${locationInfo?.displayArea ?? "Not set"}',
+                      label:
+                          'Location: ${locationInfo?.displayArea ?? "Not set"}',
                       onTap: () => context.go('/colony-detect'),
                     ),
                     const Divider(height: 1, indent: 56),
@@ -158,7 +163,7 @@ class ProfileScreen extends ConsumerWidget {
 
               // My posts
               Text(
-                'Meri Posts',
+                'My Posts',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -170,15 +175,14 @@ class ProfileScreen extends ConsumerWidget {
               myPostsAsync.when(
                 loading: () => const Center(
                     child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (e, _) =>
-                    Text('Posts load nahi hui: $e'),
+                error: (e, _) => Text('Could not load posts: $e'),
                 data: (posts) {
                   if (posts.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       child: Center(
                         child: Text(
-                          'Abhi koi post nahi — feed par pehli post karo!',
+                          'You have not posted anything yet.',
                           style: TextStyle(
                               color: Colors.grey.shade500, fontSize: 13),
                           textAlign: TextAlign.center,
@@ -219,7 +223,7 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Logout?'),
-        content: const Text('Wapas aane ke liye OTP lagega'),
+        content: const Text('You will need to sign in again.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -229,12 +233,10 @@ class ProfileScreen extends ConsumerWidget {
             onPressed: () async {
               Navigator.pop(context);
               await ref.read(authFlowProvider.notifier).signOut();
-              if (context.mounted) context.go('/phone');
+              if (context.mounted) context.go('/login');
             },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.red),
-            child: const Text('Logout',
-                style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -270,8 +272,8 @@ class _SettingsTile extends StatelessWidget {
           color: isDestructive ? AppColors.red : Colors.grey.shade800,
         ),
       ),
-      trailing: const Icon(Icons.arrow_forward_ios,
-          size: 13, color: Colors.grey),
+      trailing:
+          const Icon(Icons.arrow_forward_ios, size: 13, color: Colors.grey),
       onTap: onTap,
       dense: true,
     );

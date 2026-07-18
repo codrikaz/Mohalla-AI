@@ -11,6 +11,37 @@ class AuthService {
 
   Stream<AuthState> get authStateStream => _client.auth.onAuthStateChange;
 
+  Future<bool> signInWithGoogle() async {
+    return _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'com.codrikaz.mohalla://login-callback/',
+    );
+  }
+
+  Future<UserProfile> ensureGoogleProfile() async {
+    final user = currentUser;
+    if (user == null) {
+      throw const AuthException('Google sign-in did not create a session.');
+    }
+
+    final existing = await getProfile(user.id);
+    if (existing != null) return existing;
+
+    final identityHash = CryptoUtils.hashPhone('google:${user.id}');
+    await _client.from('users').insert({
+      'id': user.id,
+      'phone_hash': identityHash,
+      'anonymous_name': AnonName.generate(identityHash),
+      'is_rwa_verified': false,
+    });
+
+    final profile = await getProfile(user.id);
+    if (profile == null) {
+      throw StateError('Could not create your Mohalla profile.');
+    }
+    return profile;
+  }
+
   Future<void> sendOtp(String phone) async {
     await _client.auth.signInWithOtp(phone: phone);
   }
@@ -45,20 +76,15 @@ class AuthService {
   }
 
   Future<UserProfile?> getProfile(String userId) async {
-    final data = await _client
-        .from('users')
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
+    final data =
+        await _client.from('users').select().eq('id', userId).maybeSingle();
 
     if (data == null) return null;
     return UserProfile.fromJson(data);
   }
 
   Future<void> updateFcmToken(String userId, String token) async {
-    await _client
-        .from('users')
-        .update({'fcm_token': token}).eq('id', userId);
+    await _client.from('users').update({'fcm_token': token}).eq('id', userId);
   }
 
   Future<void> signOut() async {

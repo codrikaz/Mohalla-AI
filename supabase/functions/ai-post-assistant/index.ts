@@ -134,7 +134,7 @@ Deno.serve(async (request) => {
     return jsonResponse(
       {
         error: isLimit
-          ? "Aaj ke 3 AI requests use ho chuke hain. Kal dobara try karo."
+          ? "You have used all 3 AI requests for today. Please try again tomorrow."
           : "AI usage check failed. Please try again.",
       },
       isLimit ? 429 : 500,
@@ -190,6 +190,20 @@ Deno.serve(async (request) => {
     const openAiBody = await openAiResponse.json();
     if (!openAiResponse.ok) {
       console.error("OpenAI request failed", openAiResponse.status, openAiBody);
+      if (openAiResponse.status === 401) {
+        await userClient.rpc("release_ai_post_request");
+        return jsonResponse(
+          { error: "The AI service key is invalid. Please contact support." },
+          502,
+        );
+      }
+      if (openAiResponse.status === 429) {
+        await userClient.rpc("release_ai_post_request");
+        return jsonResponse(
+          { error: "The AI service has no available credits or is temporarily rate limited." },
+          503,
+        );
+      }
       throw new Error("OpenAI request failed");
     }
 
@@ -216,7 +230,7 @@ Deno.serve(async (request) => {
     console.error("AI post generation failed", error);
     await userClient.rpc("release_ai_post_request");
     return jsonResponse(
-      { error: "AI assistant abhi available nahi hai. Dobara try karo." },
+      { error: "The AI assistant is currently unavailable. Please try again." },
       502,
     );
   }

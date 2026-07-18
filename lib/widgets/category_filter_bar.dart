@@ -14,24 +14,24 @@ class CategoryFilterBar extends ConsumerWidget {
     const categories = PostCategory.urban;
     const allCategories = [null, ...categories]; // null = "All"
 
-    return SizedBox(
-      height: 38,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: allCategories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (ctx, i) {
-          final cat = allCategories[i];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        children: List.generate(allCategories.length * 2 - 1, (i) {
+          if (i.isOdd) return const SizedBox(width: 6);
+          final categoryIndex = i ~/ 2;
+          final cat = allCategories[categoryIndex];
           final isSelected = selected == cat;
-          return _Chip(
-            label: cat == null ? 'All' : PostCategory.shortName(cat),
-            isSelected: isSelected,
-            category: cat,
-            onTap: () =>
-                ref.read(selectedCategoryProvider.notifier).state = cat,
+          return Expanded(
+            child: _Chip(
+              label: cat == null ? 'All' : PostCategory.shortName(cat),
+              isSelected: isSelected,
+              category: cat,
+              onTap: () =>
+                  ref.read(selectedCategoryProvider.notifier).state = cat,
+            ),
           );
-        },
+        }),
       ),
     );
   }
@@ -51,19 +51,7 @@ class _Chip extends StatelessWidget {
   });
 
   Color get _bg {
-    if (!isSelected) return Colors.grey.shade100;
-    switch (category) {
-      case PostCategory.safety:
-        return AppColors.redSurface;
-      case PostCategory.info:
-        return AppColors.blueSurface;
-      case PostCategory.issue:
-        return AppColors.orangeSurface;
-      case PostCategory.krishi:
-        return AppColors.greenSurface;
-      default:
-        return AppColors.primarySurface;
-    }
+    return Colors.white;
   }
 
   Color get _fg {
@@ -84,20 +72,27 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        height: 34,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
           color: _bg,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? _fg.withValues(alpha: 0.4) : Colors.transparent,
+            color:
+                isSelected ? _fg.withValues(alpha: 0.65) : Colors.grey.shade200,
           ),
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,

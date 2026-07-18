@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mohalla/core/utils/crypto_utils.dart';
 import 'package:mohalla/core/utils/haversine_utils.dart';
 import 'package:mohalla/models/ai_post_suggestion.dart';
+import 'package:mohalla/models/post.dart';
 
 void main() {
   group('Mohalla core behavior', () {
@@ -47,6 +48,46 @@ void main() {
       );
 
       expect(suggestion.postText.length, 500);
+    });
+
+    test('post parses the embedded reply count', () {
+      final post = Post.fromJson({
+        'id': 'post-1',
+        'user_id': 'user-1',
+        'category': 'info',
+        'text': 'Neighbourhood update',
+        'agree_count': 0,
+        'disagree_count': 0,
+        'is_pinned': false,
+        'created_at': '2026-07-16T10:00:00.000Z',
+        'replies': [
+          {'count': 7}
+        ],
+      });
+
+      expect(post.replyCount, 7);
+    });
+
+    test('post vote can be cleared when a user taps it again', () {
+      final post = Post.fromJson({
+        'id': 'post-1',
+        'user_id': 'user-1',
+        'category': 'info',
+        'text': 'Neighbourhood update',
+        'agree_count': 1,
+        'disagree_count': 0,
+        'is_pinned': false,
+        'created_at': '2026-07-16T10:00:00.000Z',
+        'my_vote': 'agree',
+      });
+
+      final unvoted = post.copyWith(
+        agreeCount: 0,
+        clearMyVote: true,
+      );
+
+      expect(unvoted.myVote, isNull);
+      expect(unvoted.agreeCount, 0);
     });
   });
 }

@@ -67,8 +67,7 @@ class CurrentLocationNotifier extends StateNotifier<AreaInfo?> {
 }
 
 // ─── Auth Flow ────────────────────────────────────────────────────────────────
-final authFlowProvider =
-    StateNotifierProvider<AuthFlowNotifier, AuthFlowState>(
+final authFlowProvider = StateNotifierProvider<AuthFlowNotifier, AuthFlowState>(
   (ref) => AuthFlowNotifier(ref),
 );
 
@@ -149,14 +148,14 @@ class AuthFlowNotifier extends StateNotifier<AuthFlowState> {
         state = const AuthFlowState();
         return true;
       }
-      state = AuthFlowState(error: 'OTP galat hai, dobara try karo');
+      state = AuthFlowState(error: 'The OTP is incorrect. Please try again.');
       return false;
     } catch (e) {
       state = AuthFlowState(
         pendingPhone: state.pendingPhone,
         pendingCountryCode: state.pendingCountryCode,
         pendingCountryName: state.pendingCountryName,
-        error: 'Galat OTP: ${e.toString()}',
+        error: 'OTP verification failed: ${e.toString()}',
       );
       return false;
     }

@@ -32,6 +32,7 @@ class FeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
   final SupabaseClient _client = Supabase.instance.client;
   RealtimeChannel? _channel;
   Position? _position;
+  final Set<String> _pendingVotePostIds = {};
 
   // 2km radius — local feed
   static const double _radiusMeters = 2000;
@@ -60,7 +61,7 @@ class FeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
       // Saari local posts fetch karo (country feed nahi)
       final data = await _client
           .from('posts')
-          .select('*, users(anonymous_name, is_rwa_verified)')
+          .select('*, users(anonymous_name, is_rwa_verified), replies(count)')
           .eq('is_country_feed', false)
           .order('is_pinned', ascending: false)
           .order('created_at', ascending: false)
@@ -125,6 +126,12 @@ class FeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
           table: 'posts',
           callback: (_) => _loadPosts(),
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'replies',
+          callback: (_) => _loadPosts(),
+        )
         .subscribe();
   }
 
@@ -181,37 +188,40 @@ class FeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
   Future<void> vote(String postId, String voteType) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return;
+    if (!_pendingVotePostIds.add(postId)) return;
 
     final posts = state.valueOrNull ?? [];
     final idx = posts.indexWhere((p) => p.id == postId);
-    if (idx == -1) return;
+    if (idx == -1) {
+      _pendingVotePostIds.remove(postId);
+      return;
+    }
 
-    if (posts[idx].myVote != null) return;
+    final previousVote = posts[idx].myVote;
+    final nextVote = previousVote == voteType ? null : voteType;
 
     final updated = List<Post>.from(posts);
     updated[idx] = posts[idx].copyWith(
-      agreeCount: voteType == 'agree'
-          ? posts[idx].agreeCount + 1
-          : posts[idx].agreeCount,
-      disagreeCount: voteType == 'disagree'
-          ? posts[idx].disagreeCount + 1
-          : posts[idx].disagreeCount,
-      myVote: voteType,
+      agreeCount: posts[idx].agreeCount -
+          (previousVote == 'agree' ? 1 : 0) +
+          (nextVote == 'agree' ? 1 : 0),
+      disagreeCount: posts[idx].disagreeCount -
+          (previousVote == 'disagree' ? 1 : 0) +
+          (nextVote == 'disagree' ? 1 : 0),
+      myVote: nextVote,
+      clearMyVote: nextVote == null,
     );
     state = AsyncValue.data(updated);
 
     try {
-      await _client.from('votes').insert({
-        'post_id': postId,
-        'user_id': userId,
-        'type': voteType,
-      });
-      await _client.rpc('increment_vote', params: {
+      await _client.rpc('toggle_vote', params: {
         'p_post_id': postId,
         'p_vote_type': voteType,
       });
     } catch (_) {
       state = AsyncValue.data(posts);
+    } finally {
+      _pendingVotePostIds.remove(postId);
     }
   }
 
@@ -245,6 +255,7 @@ class CountryFeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
   final String? _countryCode;
   final SupabaseClient _client = Supabase.instance.client;
   RealtimeChannel? _channel;
+  final Set<String> _pendingVotePostIds = {};
 
   CountryFeedNotifier(this._countryCode) : super(const AsyncValue.loading()) {
     _load();
@@ -255,20 +266,35 @@ class CountryFeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
     try {
       var query = _client
           .from('posts')
-          .select('*, users(anonymous_name, is_rwa_verified)')
+          .select('*, users(anonymous_name, is_rwa_verified), replies(count)')
           .eq('is_country_feed', true);
 
       if (_countryCode != null) {
         query = query.eq('country', _countryCode);
       }
 
-      final data = await query
-          .order('created_at', ascending: false)
-          .limit(100);
+      final data = await query.order('created_at', ascending: false).limit(100);
 
-      final posts = (data as List)
+      var posts = (data as List)
           .map((e) => Post.fromJson(e as Map<String, dynamic>))
           .toList();
+
+      final userId = _client.auth.currentUser?.id;
+      if (userId != null && posts.isNotEmpty) {
+        final postIds = posts.map((p) => p.id).toList();
+        final votes = await _client
+            .from('votes')
+            .select('post_id, type')
+            .eq('user_id', userId)
+            .inFilter('post_id', postIds);
+        final voteMap = {
+          for (final vote in votes as List)
+            (vote as Map<String, dynamic>)['post_id'] as String:
+                vote['type'] as String,
+        };
+        posts = posts.map((p) => p.copyWith(myVote: voteMap[p.id])).toList();
+      }
+
       state = AsyncValue.data(posts);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -291,10 +317,55 @@ class CountryFeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
             }
           },
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'replies',
+          callback: (_) => _load(),
+        )
         .subscribe();
   }
 
   Future<void> refresh() => _load();
+
+  Future<void> vote(String postId, String voteType) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+    if (!_pendingVotePostIds.add(postId)) return;
+
+    final posts = state.valueOrNull ?? [];
+    final index = posts.indexWhere((post) => post.id == postId);
+    if (index == -1) {
+      _pendingVotePostIds.remove(postId);
+      return;
+    }
+
+    final previousVote = posts[index].myVote;
+    final nextVote = previousVote == voteType ? null : voteType;
+    final updated = List<Post>.from(posts);
+    updated[index] = posts[index].copyWith(
+      agreeCount: posts[index].agreeCount -
+          (previousVote == 'agree' ? 1 : 0) +
+          (nextVote == 'agree' ? 1 : 0),
+      disagreeCount: posts[index].disagreeCount -
+          (previousVote == 'disagree' ? 1 : 0) +
+          (nextVote == 'disagree' ? 1 : 0),
+      myVote: nextVote,
+      clearMyVote: nextVote == null,
+    );
+    state = AsyncValue.data(updated);
+
+    try {
+      await _client.rpc('toggle_vote', params: {
+        'p_post_id': postId,
+        'p_vote_type': voteType,
+      });
+    } catch (_) {
+      state = AsyncValue.data(posts);
+    } finally {
+      _pendingVotePostIds.remove(postId);
+    }
+  }
 
   @override
   void dispose() {
@@ -304,6 +375,29 @@ class CountryFeedNotifier extends StateNotifier<AsyncValue<List<Post>>> {
 }
 
 // ─── Replies ──────────────────────────────────────────────────────────────────
+final postProvider = FutureProvider.family<Post?, String>((ref, postId) async {
+  final client = Supabase.instance.client;
+  final data = await client
+      .from('posts')
+      .select('*, users(anonymous_name, is_rwa_verified), replies(count)')
+      .eq('id', postId)
+      .maybeSingle();
+  if (data == null) return null;
+
+  var post = Post.fromJson(data);
+  final userId = client.auth.currentUser?.id;
+  if (userId != null) {
+    final vote = await client
+        .from('votes')
+        .select('type')
+        .eq('post_id', postId)
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (vote != null) post = post.copyWith(myVote: vote['type'] as String);
+  }
+  return post;
+});
+
 final repliesProvider =
     FutureProvider.family<List<Reply>, String>((ref, postId) async {
   final data = await Supabase.instance.client
@@ -322,7 +416,7 @@ final myPostsProvider = FutureProvider<List<Post>>((ref) async {
   if (userId == null) return [];
   final data = await Supabase.instance.client
       .from('posts')
-      .select('*, users(anonymous_name, is_rwa_verified)')
+      .select('*, users(anonymous_name, is_rwa_verified), replies(count)')
       .eq('user_id', userId)
       .order('created_at', ascending: false);
   return (data as List)

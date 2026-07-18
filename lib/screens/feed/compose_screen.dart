@@ -81,8 +81,8 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                 const SizedBox(height: 12),
                 Text(
                   suggestion.cached
-                      ? 'Cached result — daily limit use nahi hua.'
-                      : '${suggestion.remainingRequests} AI requests aaj baki.',
+                      ? 'Cached result—the daily limit was not used.'
+                      : '${suggestion.remainingRequests} AI requests remaining today.',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ],
@@ -168,7 +168,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Post nahi hui — dobara try karo'),
+          content: Text('The post could not be published. Please try again.'),
           backgroundColor: AppColors.red,
         ),
       );
@@ -188,7 +188,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Naya post'),
+        title: const Text('New post'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -208,12 +208,13 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Post karo'),
+                  : const Text('Post'),
             ),
           ),
         ],
       ),
       body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +245,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                       ),
                     ),
                     Text(
-                      '🔒 Tera asli naam kisi ko nahi pata',
+                      '🔒 Your real name remains private',
                       style:
                           TextStyle(fontSize: 10, color: Colors.grey.shade500),
                     ),
@@ -294,8 +295,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
               onChanged: (_) => setState(() {}),
               style: const TextStyle(fontSize: 15, height: 1.6),
               decoration: InputDecoration(
-                hintText:
-                    'Neighbours ko kya batana chahte ho? Anonymously likho...',
+                hintText: 'What would you like to share with your neighbours?',
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -308,7 +308,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey.shade50,
-                counterText: '$remaining chars bache',
+                counterText: '$remaining characters',
                 counterStyle: TextStyle(
                   fontSize: 11,
                   color: remaining < 50 ? AppColors.red : Colors.grey.shade500,
@@ -346,47 +346,75 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Post ko clear karo, category chuno aur translation banao.',
+                    AppConstants.aiAssistantEnabled
+                        ? 'Improve clarity, choose a category, and refine your post.'
+                        : 'Live AI generation is disabled in this test build because API billing is not enabled.',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _targetLanguage,
-                          isDense: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Translation',
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
+                  if (!AppConstants.aiAssistantEnabled) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 16),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'You can still write and publish posts normally.',
+                              style: TextStyle(fontSize: 11),
                             ),
                           ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'Original',
-                              child: Text('No translation'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'English',
-                              child: Text('English'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Hindi',
-                              child: Text('Hindi'),
-                            ),
-                          ],
-                          onChanged: _isImproving
-                              ? null
-                              : (value) => setState(
-                                    () => _targetLanguage = value!,
-                                  ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      FilledButton.icon(
-                        onPressed: (_isImproving ||
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final languagePicker = DropdownButtonFormField<String>(
+                        initialValue: _targetLanguage,
+                        isDense: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Output language',
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'Original',
+                            child: Text('Keep original'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'English',
+                            child: Text('English'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Hindi',
+                            child: Text('Hindi'),
+                          ),
+                        ],
+                        onChanged:
+                            (_isImproving || !AppConstants.aiAssistantEnabled)
+                                ? null
+                                : (value) => setState(
+                                      () => _targetLanguage = value!,
+                                    ),
+                      );
+                      final improveButton = FilledButton.icon(
+                        onPressed: (!AppConstants.aiAssistantEnabled ||
+                                _isImproving ||
                                 _textController.text.trim().length < 10)
                             ? null
                             : _improveWithAi,
@@ -400,9 +428,31 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                                 ),
                               )
                             : const Icon(Icons.auto_awesome, size: 17),
-                        label: Text(_isImproving ? 'Improving...' : 'Improve'),
-                      ),
-                    ],
+                        label: Text(
+                          !AppConstants.aiAssistantEnabled
+                              ? 'Unavailable'
+                              : (_isImproving ? 'Improving...' : 'Improve'),
+                        ),
+                      );
+
+                      if (constraints.maxWidth < 340) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            languagePicker,
+                            const SizedBox(height: 10),
+                            improveButton,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: languagePicker),
+                          const SizedBox(width: 10),
+                          improveButton,
+                        ],
+                      );
+                    },
                   ),
                   if (_remainingAiRequests != null) ...[
                     const SizedBox(height: 8),
@@ -458,8 +508,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
             OutlinedButton.icon(
               onPressed: _pickImage,
               icon: const Icon(Icons.photo_outlined, size: 18),
-              label:
-                  Text(_image == null ? 'Photo add karo' : 'Photo change karo'),
+              label: Text(_image == null ? 'Add photo' : 'Change photo'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.grey.shade700,
                 side: BorderSide(color: Colors.grey.shade300),
@@ -494,14 +543,14 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$countryName feed mein bhi post karo',
+                            'Also post to the $countryName feed',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 13),
                           ),
                           Text(
                             _postToCountry
-                                ? 'Tumhara naam "${profile?.displayName ?? 'Anonymous'} — Tumhari location" dikhega'
-                                : 'Poore $countryName ke log dekh sakte hain — tumhara naam dikhega',
+                                ? 'Your name and location will be visible'
+                                : 'People across $countryName can see this post and your name',
                             style: TextStyle(
                                 fontSize: 11, color: Colors.grey.shade600),
                           ),

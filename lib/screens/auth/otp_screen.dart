@@ -32,9 +32,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   Future<void> _verify() async {
     if (_otp.length != 6) return;
 
-    final success = await ref
-        .read(authFlowProvider.notifier)
-        .verifyOtp(otp: _otp);
+    final success =
+        await ref.read(authFlowProvider.notifier).verifyOtp(otp: _otp);
 
     if (success && mounted) {
       context.go('/name');
@@ -63,120 +62,118 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: Padding(
+        child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              const Text(
-                'OTP daalo',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+          children: [
+            const SizedBox(height: 20),
+            const Text(
+              'Enter OTP',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 8),
-              Text(
-                '$phone par bheja gaya hai',
-                style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (i) {
-                  return SizedBox(
-                    width: 46,
-                    height: 56,
-                    child: TextFormField(
-                      controller: _controllers[i],
-                      focusNode: _focusNodes[i],
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.bold),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(1),
-                      ],
-                      decoration: InputDecoration(
-                        counterText: '',
-                        contentPadding: EdgeInsets.zero,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: AppColors.primary, width: 2),
-                        ),
-                      ),
-                      onChanged: (val) => _onChanged(val, i),
-                    ),
-                  );
-                }),
-              ),
-              if (authFlow.error != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.redSurface,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline,
-                          color: AppColors.red, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          authFlow.error!,
-                          style:
-                              const TextStyle(color: AppColors.red, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: authFlow.isLoading ? null : _verify,
-                  child: authFlow.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'We sent a code to $phone',
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 40),
+            Row(
+              children: List.generate(11, (index) {
+                if (index.isOdd) return const SizedBox(width: 8);
+                final i = index ~/ 2;
+                return Expanded(
+                  child: SizedBox(
+                      height: 56,
+                      child: TextFormField(
+                        controller: _controllers[i],
+                        focusNode: _focusNodes[i],
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(1),
+                        ],
+                        decoration: InputDecoration(
+                          counterText: '',
+                          contentPadding: EdgeInsets.zero,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
                           ),
-                        )
-                      : const Text('Verify karo'),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                                color: AppColors.primary, width: 2),
+                          ),
+                        ),
+                        onChanged: (val) => _onChanged(val, i),
+                      )),
+                );
+              }),
+            ),
+            if (authFlow.error != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.redSurface,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: TextButton(
-                  onPressed: authFlow.isLoading
-                      ? null
-                      : () {
-                          if (authFlow.pendingPhone != null) {
-                            ref
-                                .read(authFlowProvider.notifier)
-                                .sendOtp(authFlow.pendingPhone!);
-                          }
-                        },
-                  child: const Text('OTP dobara bhejo'),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline,
+                        color: AppColors.red, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        authFlow.error!,
+                        style:
+                            const TextStyle(color: AppColors.red, fontSize: 13),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: authFlow.isLoading ? null : _verify,
+                child: authFlow.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text('Verify'),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: TextButton(
+                onPressed: authFlow.isLoading
+                    ? null
+                    : () {
+                        if (authFlow.pendingPhone != null) {
+                          ref
+                              .read(authFlowProvider.notifier)
+                              .sendOtp(authFlow.pendingPhone!);
+                        }
+                      },
+                child: const Text('Resend OTP'),
+              ),
+            ),
+          ],
         ),
       ),
     );

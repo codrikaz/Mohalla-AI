@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
+import 'screens/auth/login_screen.dart';
 import 'screens/auth/phone_screen.dart';
 import 'screens/auth/otp_screen.dart';
 import 'screens/auth/name_screen.dart';
@@ -22,13 +23,17 @@ final _routerProvider = Provider<GoRouter>((ref) {
       final path = state.uri.path;
 
       // Splash, phone, otp, name, colony-detect — ye sab always allow
-      if (path == '/' || path == '/phone' || path == '/otp' ||
-          path == '/name' || path == '/colony-detect') {
+      if (path == '/' ||
+          path == '/login' ||
+          path == '/phone' ||
+          path == '/otp' ||
+          path == '/name' ||
+          path == '/colony-detect') {
         return null;
       }
 
       // Not logged in → phone
-      if (!isLoggedIn) return '/phone';
+      if (!isLoggedIn) return '/login';
 
       return null;
     },
@@ -36,6 +41,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         builder: (_, __) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (_, __) => const LoginScreen(),
       ),
       GoRoute(
         path: '/phone',
@@ -70,7 +79,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
     ],
     errorBuilder: (_, state) => Scaffold(
       body: Center(
-        child: Text('Page nahi mila: ${state.error}'),
+        child: Text('Page not found: ${state.error}'),
       ),
     ),
   );
@@ -87,8 +96,7 @@ class MohallaApp extends ConsumerWidget {
       title: 'Mohalla',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       routerConfig: router,
     );
   }
