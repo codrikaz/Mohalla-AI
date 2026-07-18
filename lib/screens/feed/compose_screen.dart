@@ -7,6 +7,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/feed_provider.dart';
+import '../../services/ai_post_service.dart';
 
 class ComposeScreen extends ConsumerStatefulWidget {
   const ComposeScreen({super.key});
@@ -20,12 +21,112 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   String _selectedCategory = PostCategory.info;
   XFile? _image;
   bool _isPosting = false;
+  bool _isImproving = false;
   bool _postToCountry = false;
+  String _targetLanguage = 'Original';
+  int? _remainingAiRequests;
 
   @override
   void dispose() {
     _textController.dispose();
     super.dispose();
+  }
+
+  Future<void> _improveWithAi() async {
+    if (_isImproving) return;
+    setState(() => _isImproving = true);
+
+    try {
+      final suggestion = await AiPostService().improvePost(
+        text: _textController.text,
+        targetLanguage: _targetLanguage,
+      );
+      if (!mounted) return;
+
+      final apply = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: AppColors.primary),
+              SizedBox(width: 8),
+              Expanded(child: Text('AI suggestion')),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  suggestion.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Chip(label: Text(PostCategory.shortName(suggestion.category))),
+                const SizedBox(height: 8),
+                Text(suggestion.improvedText),
+                if (suggestion.translatedText.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    '${suggestion.language} translation',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(suggestion.translatedText),
+                ],
+                const SizedBox(height: 12),
+                Text(
+                  suggestion.cached
+                      ? 'Cached result—the daily limit was not used.'
+                      : '${suggestion.remainingRequests} AI requests remaining today.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      );
+
+      if (apply == true && mounted) {
+        _textController.text = suggestion.postText;
+        _textController.selection = TextSelection.collapsed(
+          offset: _textController.text.length,
+        );
+        setState(() {
+          if (PostCategory.urban.contains(suggestion.category)) {
+            _selectedCategory = suggestion.category;
+          }
+          _remainingAiRequests = suggestion.remainingRequests;
+        });
+      } else if (mounted) {
+        setState(() => _remainingAiRequests = suggestion.remainingRequests);
+      }
+    } on AiPostException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.message),
+            backgroundColor: AppColors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isImproving = false);
+    }
   }
 
   Future<void> _pickImage() async {
@@ -60,14 +161,20 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           stateName: locationInfo?.stateName,
         );
 
+    if (!mounted) return;
     setState(() => _isPosting = false);
 
-    if (ok && mounted) {
+    if (ok) {
+      if (_postToCountry) {
+        await ref.read(countryFeedProvider.notifier).refresh();
+      }
+      ref.invalidate(myPostsProvider);
+      if (!mounted) return;
       context.pop();
-    } else if (mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Post nahi hui — dobara try karo'),
+          content: Text('The post could not be published. Please try again.'),
           backgroundColor: AppColors.red,
         ),
       );
@@ -78,8 +185,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   Widget build(BuildContext context) {
     const categories = PostCategory.urban;
     final profile = ref.watch(userProfileProvider).valueOrNull;
-    final remaining =
-        AppConstants.maxPostLength - _textController.text.length;
+    final remaining = AppConstants.maxPostLength - _textController.text.length;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -88,13 +194,12 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Naya post'),
+        title: const Text('New post'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: ElevatedButton(
-              onPressed: (_isPosting ||
-                      _textController.text.trim().isEmpty)
+              onPressed: (_isPosting || _textController.text.trim().isEmpty)
                   ? null
                   : _post,
               style: ElevatedButton.styleFrom(
@@ -106,15 +211,16 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child:
-                          CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Post karo'),
+                  : const Text('Post'),
             ),
           ),
         ],
       ),
       body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,9 +251,9 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                       ),
                     ),
                     Text(
-                      '🔒 Tera asli naam kisi ko nahi pata',
-                      style: TextStyle(
-                          fontSize: 10, color: Colors.grey.shade500),
+                      '🔒 Your real name remains private',
+                      style:
+                          TextStyle(fontSize: 10, color: Colors.grey.shade500),
                     ),
                   ],
                 ),
@@ -175,15 +281,12 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                   selectedColor: AppColors.primarySurface,
                   labelStyle: TextStyle(
                     fontSize: 12,
-                    color: isSelected
-                        ? AppColors.primary
-                        : Colors.grey.shade700,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
+                    color:
+                        isSelected ? AppColors.primary : Colors.grey.shade700,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
-                  onSelected: (_) =>
-                      setState(() => _selectedCategory = cat),
+                  onSelected: (_) => setState(() => _selectedCategory = cat),
                 );
               }).toList(),
             ),
@@ -198,10 +301,8 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
               onChanged: (_) => setState(() {}),
               style: const TextStyle(fontSize: 15, height: 1.6),
               decoration: InputDecoration(
-                hintText:
-                    'Neighbours ko kya batana chahte ho? Anonymously likho...',
-                hintStyle:
-                    TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                hintText: 'What would you like to share with your neighbours?',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey.shade200),
@@ -213,13 +314,163 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey.shade50,
-                counterText: '$remaining chars bache',
+                counterText: '$remaining characters',
                 counterStyle: TextStyle(
                   fontSize: 11,
-                  color: remaining < 50
-                      ? AppColors.red
-                      : Colors.grey.shade500,
+                  color: remaining < 50 ? AppColors.red : Colors.grey.shade500,
                 ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primarySurface,
+                    Colors.purple.shade50,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primaryLight),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.auto_awesome,
+                          size: 18, color: AppColors.primary),
+                      SizedBox(width: 8),
+                      Text(
+                        'Mohalla AI Post Assistant',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppConstants.aiAssistantEnabled
+                        ? 'Improve clarity, choose a category, and refine your post.'
+                        : 'Live AI generation is disabled in this test build because API billing is not enabled.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                  if (!AppConstants.aiAssistantEnabled) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 16),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'You can still write and publish posts normally.',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final languagePicker = DropdownButtonFormField<String>(
+                        initialValue: _targetLanguage,
+                        isDense: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Output language',
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'Original',
+                            child: Text('Keep original'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'English',
+                            child: Text('English'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Hindi',
+                            child: Text('Hindi'),
+                          ),
+                        ],
+                        onChanged:
+                            (_isImproving || !AppConstants.aiAssistantEnabled)
+                                ? null
+                                : (value) => setState(
+                                      () => _targetLanguage = value!,
+                                    ),
+                      );
+                      final improveButton = FilledButton.icon(
+                        onPressed: (!AppConstants.aiAssistantEnabled ||
+                                _isImproving ||
+                                _textController.text.trim().length < 10)
+                            ? null
+                            : _improveWithAi,
+                        icon: _isImproving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.auto_awesome, size: 17),
+                        label: Text(
+                          !AppConstants.aiAssistantEnabled
+                              ? 'Unavailable'
+                              : (_isImproving ? 'Improving...' : 'Improve'),
+                        ),
+                      );
+
+                      if (constraints.maxWidth < 340) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            languagePicker,
+                            const SizedBox(height: 10),
+                            improveButton,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: languagePicker),
+                          const SizedBox(width: 10),
+                          improveButton,
+                        ],
+                      );
+                    },
+                  ),
+                  if (_remainingAiRequests != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '$_remainingAiRequests of 3 AI requests remaining today',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
 
@@ -263,8 +514,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
             OutlinedButton.icon(
               onPressed: _pickImage,
               icon: const Icon(Icons.photo_outlined, size: 18),
-              label: Text(
-                  _image == null ? 'Photo add karo' : 'Photo change karo'),
+              label: Text(_image == null ? 'Add photo' : 'Change photo'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.grey.shade700,
                 side: BorderSide(color: Colors.grey.shade300),
@@ -299,14 +549,14 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$countryName feed mein bhi post karo',
+                            'Also post to the $countryName feed',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 13),
                           ),
                           Text(
                             _postToCountry
-                                ? 'Tumhara naam "${profile?.displayName ?? 'Anonymous'} — Tumhari location" dikhega'
-                                : 'Poore $countryName ke log dekh sakte hain — tumhara naam dikhega',
+                                ? 'Your name and location will be visible'
+                                : 'People across $countryName can see this post and your name',
                             style: TextStyle(
                                 fontSize: 11, color: Colors.grey.shade600),
                           ),
@@ -315,8 +565,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                     ),
                     Switch(
                       value: _postToCountry,
-                      onChanged: (val) =>
-                          setState(() => _postToCountry = val),
+                      onChanged: (val) => setState(() => _postToCountry = val),
                       activeThumbColor: AppColors.primary,
                     ),
                   ],

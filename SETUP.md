@@ -3,7 +3,7 @@
 
 ---
 
-## ⚡ 2 Steps mein app chalu karo
+## ⚡ App setup
 
 ### Step 1 — Supabase Setup (10 minutes)
 
@@ -12,9 +12,9 @@
 2. **New Project** → Name: `mohalla`, Region: South Asia (Mumbai)
 
 3. **SQL Editor** → `supabase/schema.sql` ka poora content paste karo → Run karo
-   - 8 tables ban jayengi
+   - Core app tables ban jayengi
    - RLS policies set ho jayengi
-   - Sample Rampur colonies add ho jayengi
+   - GPS-based feed schema aur RLS policies configure ho jayengi
 
 4. **Phone Auth enable karo**
    - Supabase Dashboard → Authentication → Providers → Phone → Enable
@@ -46,7 +46,7 @@
    - New Project → Name: `mohalla`
 
 2. **Android app add karo**
-   - Package name: `com.mohalla.mohalla`
+   - Package name: `com.codrikaz.mohalla`
    - App nickname: Mohalla
    - `google-services.json` download karo
 
@@ -57,21 +57,23 @@
 
 ---
 
-## 🗺️ Apni Colony Add Karo
+## ✨ Mohalla AI Setup (Build Week)
 
-`supabase/schema.sql` ke bottom mein SEED DATA section mein apni colony ka lat/lng daalo:
+1. Supabase SQL Editor mein `supabase/migration_build_week_ai.sql` run karo.
+2. OpenAI key ko Flutter ya GitHub mein mat rakho. Supabase secret banao:
 
-```sql
-insert into public.colonies (name, city, state, colony_type, center_lat, center_lng, radius_meters)
-values ('Tumhari Colony Ka Naam', 'Tumhara Sheher', 'Uttar Pradesh', 'urban', 28.XXXX, 79.XXXX, 600);
+```bash
+supabase secrets set OPENAI_API_KEY=YOUR_OPENAI_API_KEY
 ```
 
-**Lat/Lng kaise nikalo:**
-- Google Maps → apni colony dhundho → right click → "What's here?" → numbers copy karo
+3. Edge Function deploy karo:
 
-**Radius:**
-- Urban colony → `600` (meters)
-- Village → `2000` (meters)
+```bash
+supabase functions deploy ai-post-assistant
+```
+
+AI assistant sirf signed-in users ke liye hai. Har user ko UTC day mein 3
+new generations milti hain. Same input ka cached result limit use nahi karta.
 
 ---
 

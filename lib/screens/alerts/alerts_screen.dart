@@ -24,9 +24,7 @@ class AlertsScreen extends ConsumerWidget {
         title: const Text(
           '🚨 Alerts',
           style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.red),
+              fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.red),
         ),
         actions: [
           IconButton(
@@ -51,8 +49,7 @@ class AlertsScreen extends ConsumerWidget {
             child: alertsAsync.when(
               loading: () => const Center(
                 child: CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColors.red),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.red),
                 ),
               ),
               error: (e, _) => Center(child: Text('Error: $e')),
@@ -65,7 +62,7 @@ class AlertsScreen extends ConsumerWidget {
                         const Text('✅', style: TextStyle(fontSize: 48)),
                         const SizedBox(height: 12),
                         Text(
-                          'Koi alert nahi — sab theek hai!',
+                          'No alerts. Everything looks clear.',
                           style: TextStyle(
                               color: Colors.grey.shade600, fontSize: 15),
                         ),
@@ -80,16 +77,12 @@ class AlertsScreen extends ConsumerWidget {
                   itemCount: alerts.length,
                   itemBuilder: (ctx, i) {
                     final alert = alerts[i];
-                    final isNew = DateTime.now()
-                            .difference(alert.createdAt)
-                            .inHours <
-                        24;
+                    final isNew =
+                        DateTime.now().difference(alert.createdAt).inHours < 24;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: isNew
-                            ? AppColors.redSurface
-                            : Colors.white,
+                        color: isNew ? AppColors.redSurface : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isNew
@@ -121,8 +114,7 @@ class AlertsScreen extends ConsumerWidget {
                                         horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: AppColors.red,
-                                      borderRadius:
-                                          BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Text(
                                       'NEW',
@@ -137,8 +129,7 @@ class AlertsScreen extends ConsumerWidget {
                             const SizedBox(height: 6),
                             Text(
                               alert.message,
-                              style: const TextStyle(
-                                  fontSize: 14, height: 1.5),
+                              style: const TextStyle(fontSize: 14, height: 1.5),
                             ),
                             const SizedBox(height: 8),
                             Row(
@@ -209,7 +200,7 @@ class _EmergencyButton extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Emergency Alert bhejo',
+                    'Send emergency alert',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -218,16 +209,14 @@ class _EmergencyButton extends ConsumerWidget {
                   ),
                   Text(
                     canBroadcast
-                        ? 'Aas paas ke logon ke phones par turant notification'
-                        : 'Ek tap — poore mohalle ko pata chal jaata hai',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade600),
+                        ? 'Notify nearby residents immediately'
+                        : 'Quickly notify your whole neighbourhood',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios,
-                size: 14, color: AppColors.red),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.red),
           ],
         ),
       ),
@@ -247,162 +236,161 @@ class _EmergencyButton extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '🚨 Emergency Alert',
-                style:
-                    TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Aas paas ke logon ko turant notification jaayegi',
-                style:
-                    TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 16),
+        builder: (ctx, setModalState) => SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '🚨 Emergency Alert',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Nearby residents will receive a notification immediately.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 16),
 
-              // Alert type chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: types.map((t) {
-                  final isSelected = selectedType == t;
-                  return GestureDetector(
-                    onTap: () => setModalState(() => selectedType = t),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.redSurface
-                            : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
+                // Alert type chips
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: types.map((t) {
+                    final isSelected = selectedType == t;
+                    return GestureDetector(
+                      onTap: () => setModalState(() => selectedType = t),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.red
-                              : Colors.transparent,
+                              ? AppColors.redSurface
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color:
+                                isSelected ? AppColors.red : Colors.transparent,
+                          ),
+                        ),
+                        child: Text(
+                          AlertType.displayName(t),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isSelected
+                                ? AppColors.red
+                                : Colors.grey.shade700,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        AlertType.displayName(t),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isSelected
-                              ? AppColors.red
-                              : Colors.grey.shade700,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
+                    );
+                  }).toList(),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Message field
+                TextField(
+                  controller: msgController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Briefly describe what happened...',
+                    hintStyle:
+                        TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: AppColors.red, width: 1.5),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Warning text
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.orangeSurface,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_outlined,
+                          color: AppColors.orange, size: 16),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Use this only for a genuine emergency. Misuse may result in account suspension.',
+                          style:
+                              TextStyle(fontSize: 11, color: AppColors.orange),
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Message field
-              TextField(
-                controller: msgController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Kya hua? Briefly batao...',
-                  hintStyle: TextStyle(
-                      color: Colors.grey.shade400, fontSize: 13),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AppColors.red, width: 1.5),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Warning text
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.orangeSurface,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.warning_amber_outlined,
-                        color: AppColors.orange, size: 16),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        'Sirf asli emergency mein use karo — neighbours ko disturb mat karo, misuse pe account band hoga',
-                        style:
-                            TextStyle(fontSize: 11, color: AppColors.orange),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final msg = msgController.text.trim();
+                          if (msg.isEmpty) return;
+                          Navigator.pop(ctx);
+                          final ok =
+                              await ref.read(alertsProvider.notifier).sendAlert(
+                                    type: selectedType,
+                                    message: msg,
+                                  );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ok
+                                    ? '✅ Alert sent'
+                                    : '❌ Alert could not be sent. Please try again.'),
+                                backgroundColor:
+                                    ok ? AppColors.green : AppColors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.red,
+                        ),
+                        child: const Text(
+                          '🚨 Send alert',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final msg = msgController.text.trim();
-                        if (msg.isEmpty) return;
-                        Navigator.pop(ctx);
-                        final ok = await ref
-                            .read(alertsProvider.notifier)
-                            .sendAlert(
-                              type: selectedType,
-                              message: msg,
-                            );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(ok
-                                  ? '✅ Alert bhej diya'
-                                  : '❌ Alert nahi gaya — dobara try karo'),
-                              backgroundColor:
-                                  ok ? AppColors.green : AppColors.red,
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.red,
-                      ),
-                      child: const Text(
-                        '🚨 Alert bhejo',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

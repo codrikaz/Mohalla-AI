@@ -91,14 +91,4 @@ class AppTheme {
           elevation: 8,
         ),
       );
-
-  static ThemeData get dark => ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          brightness: Brightness.dark,
-        ),
-        fontFamily: 'Roboto',
-        scaffoldBackgroundColor: const Color(0xFF0F0E1A),
-      );
 }

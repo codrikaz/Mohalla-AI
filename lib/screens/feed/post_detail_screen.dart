@@ -20,20 +20,12 @@ class PostDetailScreen extends ConsumerStatefulWidget {
 class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
   final _replyController = TextEditingController();
   bool _sendingReply = false;
+  bool _changingVote = false;
 
   @override
   void dispose() {
     _replyController.dispose();
     super.dispose();
-  }
-
-  Post? _getPost() {
-    final posts = ref.read(feedProvider).valueOrNull ?? [];
-    try {
-      return posts.firstWhere((p) => p.id == widget.postId);
-    } catch (_) {
-      return null;
-    }
   }
 
   Future<void> _sendReply() async {
@@ -50,13 +42,39 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       });
       _replyController.clear();
       ref.invalidate(repliesProvider(widget.postId));
+      ref.invalidate(postProvider(widget.postId));
+      await ref.read(feedProvider.notifier).refresh();
+      await ref.read(countryFeedProvider.notifier).refresh();
+      ref.invalidate(myPostsProvider);
     }
     setState(() => _sendingReply = false);
   }
 
+  Future<void> _vote(String voteType) async {
+    if (_changingVote) return;
+    setState(() => _changingVote = true);
+    try {
+      await Supabase.instance.client.rpc('toggle_vote', params: {
+        'p_post_id': widget.postId,
+        'p_vote_type': voteType,
+      });
+      ref.invalidate(postProvider(widget.postId));
+      await ref.read(feedProvider.notifier).refresh();
+      await ref.read(countryFeedProvider.notifier).refresh();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update your vote.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _changingVote = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final post = _getPost();
+    final post = ref.watch(postProvider(widget.postId)).valueOrNull;
     final repliesAsync = ref.watch(repliesProvider(widget.postId));
 
     return Scaffold(
@@ -64,9 +82,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       appBar: AppBar(
         leading: const BackButton(),
         title: Text(
-          post != null
-              ? PostCategory.displayName(post.category)
-              : 'Post',
+          post != null ? PostCategory.displayName(post.category) : 'Post',
         ),
         backgroundColor: Colors.white,
       ),
@@ -82,8 +98,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                   if (post != null)
                     _PostBody(
                       post: post,
-                      onVote: (type) =>
-                          ref.read(feedProvider.notifier).vote(post.id, type),
+                      onVote: _changingVote ? null : _vote,
                     ),
 
                   const SizedBox(height: 16),
@@ -102,14 +117,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                   repliesAsync.when(
                     loading: () => const Center(
                         child: CircularProgressIndicator(strokeWidth: 2)),
-                    error: (e, _) => Text('Replies load nahi hui: $e'),
+                    error: (e, _) => Text('Could not load replies: $e'),
                     data: (replies) {
                       if (replies.isEmpty) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           child: Center(
                             child: Text(
-                              'Koi reply nahi abhi tak\nPehli reply tum karo!',
+                              'No replies yet.\nBe the first to reply!',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: Colors.grey.shade500, fontSize: 13),
@@ -125,8 +140,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color: Colors.grey.shade200),
+                              border: Border.all(color: Colors.grey.shade200),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,8 +149,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                                   children: [
                                     if (reply.userIsVerified == true) ...[
                                       const Icon(Icons.verified,
-                                          size: 12,
-                                          color: AppColors.primary),
+                                          size: 12, color: AppColors.primary),
                                       const SizedBox(width: 3),
                                     ],
                                     Expanded(
@@ -177,55 +190,57 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           ),
 
           // Reply input bar
-          Container(
-            color: Colors.white,
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 8,
-              top: 8,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 8,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _replyController,
-                    maxLines: 1,
-                    style: const TextStyle(fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Reply likho...',
-                      hintStyle: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 13),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide:
-                            BorderSide(color: Colors.grey.shade200),
+          SafeArea(
+            top: false,
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.only(
+                left: 16,
+                right: 8,
+                top: 8,
+                bottom: 8,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _replyController,
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Write a reply...',
+                        hintStyle: TextStyle(
+                            color: Colors.grey.shade400, fontSize: 13),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(
+                              color: AppColors.primary, width: 1.5),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(
-                            color: AppColors.primary, width: 1.5),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
                     ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                _sendingReply
-                    ? const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColors.primary),
-                      )
-                    : IconButton(
-                        icon: const Icon(Icons.send_rounded,
-                            color: AppColors.primary),
-                        onPressed: _sendReply,
-                      ),
-              ],
+                  const SizedBox(width: 6),
+                  _sendingReply
+                      ? const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.primary),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.send_rounded,
+                              color: AppColors.primary),
+                          onPressed: _sendReply,
+                        ),
+                ],
+              ),
             ),
           ),
         ],
@@ -255,13 +270,11 @@ class _PostBody extends StatelessWidget {
           Row(
             children: [
               if (post.userIsVerified == true) ...[
-                const Icon(Icons.verified,
-                    size: 14, color: AppColors.primary),
+                const Icon(Icons.verified, size: 14, color: AppColors.primary),
                 const SizedBox(width: 4),
               ],
               if (post.isPinned) ...[
-                const Icon(Icons.push_pin,
-                    size: 13, color: AppColors.primary),
+                const Icon(Icons.push_pin, size: 13, color: AppColors.primary),
                 const SizedBox(width: 4),
               ],
               Text(
@@ -277,8 +290,7 @@ class _PostBody extends StatelessWidget {
               const Spacer(),
               Text(
                 timeago.format(post.createdAt),
-                style: TextStyle(
-                    fontSize: 11, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
             ],
           ),

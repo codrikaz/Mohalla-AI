@@ -4,10 +4,10 @@ class UserProfile {
   final bool isRwaVerified;
   final String? fcmToken;
   final String? anonymousName;
-  final String? displayName;   // Country feed mein real naam
-  final String? countryCode;   // ISO 3166-1 alpha-2 e.g. "IN", "US"
-  final String? countryName;   // e.g. "India", "United States"
-  final String? countryFlag;   // e.g. "🇮🇳"
+  final String? displayName; // Country feed mein real naam
+  final String? countryCode; // ISO 3166-1 alpha-2 e.g. "IN", "US"
+  final String? countryName; // e.g. "India", "United States"
+  final String? countryFlag; // e.g. "🇮🇳"
   final DateTime createdAt;
 
   const UserProfile({

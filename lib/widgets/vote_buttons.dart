@@ -17,8 +17,6 @@ class VoteButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alreadyVoted = myVote != null;
-
     return Row(
       children: [
         _VoteBtn(
@@ -27,7 +25,7 @@ class VoteButtons extends StatelessWidget {
           count: agreeCount,
           isActive: myVote == 'agree',
           activeColor: AppColors.green,
-          onTap: alreadyVoted ? null : () => onVote?.call('agree'),
+          onTap: onVote == null ? null : () => onVote!.call('agree'),
         ),
         const SizedBox(width: 8),
         _VoteBtn(
@@ -36,7 +34,7 @@ class VoteButtons extends StatelessWidget {
           count: disagreeCount,
           isActive: myVote == 'disagree',
           activeColor: AppColors.red,
-          onTap: alreadyVoted ? null : () => onVote?.call('disagree'),
+          onTap: onVote == null ? null : () => onVote!.call('disagree'),
         ),
       ],
     );
@@ -73,7 +71,9 @@ class _VoteBtn extends StatelessWidget {
               : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? activeColor.withValues(alpha: 0.4) : Colors.transparent,
+            color: isActive
+                ? activeColor.withValues(alpha: 0.4)
+                : Colors.transparent,
           ),
         ),
         child: Row(
@@ -90,8 +90,7 @@ class _VoteBtn extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 color: isActive ? activeColor : Colors.grey.shade600,
-                fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],

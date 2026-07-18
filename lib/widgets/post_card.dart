@@ -11,6 +11,7 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onTap;
   final ValueChanged<String>? onVote;
   final VoidCallback? onReport;
+  final VoidCallback? onReply;
   final bool isMyPost;
   final VoidCallback? onDelete;
 
@@ -20,6 +21,7 @@ class PostCard extends StatelessWidget {
     this.onTap,
     this.onVote,
     this.onReport,
+    this.onReply,
     this.isMyPost = false,
     this.onDelete,
   });
@@ -118,8 +120,8 @@ class PostCard extends StatelessWidget {
                     // Time
                     Text(
                       timeago.format(post.createdAt, locale: 'en_short'),
-                      style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade500),
+                      style:
+                          TextStyle(fontSize: 11, color: Colors.grey.shade500),
                     ),
                     if (isMyPost) ...[
                       const SizedBox(width: 4),
@@ -183,6 +185,11 @@ class PostCard extends StatelessWidget {
                       myVote: post.myVote,
                       onVote: onVote,
                     ),
+                    const SizedBox(width: 8),
+                    _ReplyButton(
+                      count: post.replyCount,
+                      onTap: onReply ?? onTap,
+                    ),
                     const Spacer(),
                     if (hidden)
                       Row(
@@ -191,7 +198,7 @@ class PostCard extends StatelessWidget {
                               size: 12, color: Colors.grey.shade400),
                           const SizedBox(width: 3),
                           Text(
-                            'Community ne hide kiya',
+                            'Hidden by the community',
                             style: TextStyle(
                                 fontSize: 10, color: Colors.grey.shade400),
                           ),
@@ -202,6 +209,40 @@ class PostCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReplyButton extends StatelessWidget {
+  final int count;
+  final VoidCallback? onTap;
+
+  const _ReplyButton({required this.count, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.chat_bubble_outline,
+                size: 14, color: Colors.grey.shade500),
+            const SizedBox(width: 4),
+            Text(
+              '$count',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
         ),
       ),
     );

@@ -5,7 +5,7 @@ class AnonName {
     final b1 = int.parse(phoneHash.substring(2, 4), radix: 16);
 
     final block = String.fromCharCode(65 + (b0 % 26));
-    const suffixes = ['Neighbour', 'Resident', 'Uncle', 'Aunty', 'Bhai'];
+    const suffixes = ['Neighbour', 'Resident', 'Local', 'Member', 'Citizen'];
     final suffix = suffixes[b1 % suffixes.length];
     return 'Block $block $suffix';
   }

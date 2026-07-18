@@ -24,9 +24,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     final authService = ref.read(authServiceProvider);
     if (authService.isLoggedIn) {
-      if (mounted) context.go('/home');
+      try {
+        final profile = await authService.ensureGoogleProfile();
+        await ref.read(userProfileProvider.notifier).reload();
+        if (!mounted) return;
+        if (profile.displayName == null ||
+            profile.displayName!.trim().isEmpty) {
+          context.go('/name');
+        } else {
+          context.go('/home');
+        }
+      } catch (_) {
+        if (mounted) context.go('/login');
+      }
     } else {
-      if (mounted) context.go('/phone');
+      if (mounted) context.go('/login');
     }
   }
 
@@ -61,7 +73,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Aas paas ke logon se judho',
+              'Connect with people nearby',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 15,

@@ -20,8 +20,9 @@ class AreaInfo {
 
   // UI mein dikhane ke liye: "Civil Lines, Rampur"
   String get displayArea {
-    final parts = [areaName, cityName].where((s) => s != null && s.isNotEmpty).toList();
-    return parts.isNotEmpty ? parts.join(', ') : 'Aas paas';
+    final parts =
+        [areaName, cityName].where((s) => s != null && s.isNotEmpty).toList();
+    return parts.isNotEmpty ? parts.join(', ') : 'Nearby';
   }
 }
 
